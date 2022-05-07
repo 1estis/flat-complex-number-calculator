@@ -1,2 +1,2 @@
-# flat-complex-number-calculator
-Link: https://1estis.github.io/flat-complex-number-calculator/
+# complex-plane-calculator
+Link: https://1estis.github.io/complex-plane-calculator/
