@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Nothing interesting yet</title>
     <style type="text/css">
 
       html, body {
@@ -19,16 +21,31 @@
         margin: 0;
       }
 
+      a.button {
+        color: #fff;
+        user-select: none; /* Убираем текстовое выделение */
+        text-decoration: none;	/* Убираем подчеркивание */
+        outline: none; /* Убираем контур вокруг ссылки */
+        background-color: #fa8e47; /* Цвет фона */
+        padding: 0.5em 0.5em; /* Отступ от текста до рамки */
+        border-radius: 10px;
+      }
+      a.button:hover {
+        background-color: #f97f2e; /* Цвет кнопки при наведении курсора */
+      }
+      a.button:active {
+        background-color: #ee6206; /* Цвет кнопки при нажатии */
+      }
+
     </style>
-
   </head>
+  <body>
 
-<body>
+    <canvas id="my-canvas"></canvas>
+    <a href="https://github.com/1estis/complex-plane-calculator" class="button" style="position:absolute; top:10px;left:10px;">Source</a>
 
-  <canvas id="my-canvas"></canvas>
+    <script src="code.js" type="text/javascript" charset="utf-8"></script>
 
-  <script src="code.js" type="text/javascript" charset="utf-8"></script>
-
-</body>
+  </body>
 
 </html>
