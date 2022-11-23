@@ -1,15 +1,34 @@
-var grid_size = 25;
-var x_axis_starting_point = { number: 1, suffix: '\u03a0' };
+const grid_size_default = 35;
+const scale_step = 0.1;
+const grid_size_step = 0.5;
+var x_axis_starting_point = { number: 1, suffix: '' };
 var y_axis_starting_point = { number: 1, suffix: '' };
 
 var canvas = document.getElementById("my-canvas");
 var ctx = canvas.getContext("2d");
 
+var scale = 1;
+var grid_number_scale = 1;
+var grid_size = grid_size_default * scale;
 
+canvas.width = document.body.clientWidth;
+canvas.height = document.body.clientHeight;
+
+// Resize the canvas
+function resize_canvas() {
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
+    draw_grid();
+}
+
+// Resize the grid
+function resize_grid() {
+    grid_size = grid_size_default * scale;
+    draw_grid();
+}
+
+// Draw the grid
 function draw_grid() {
-
-  canvas.width = document.body.clientWidth;
-  canvas.height = document.body.clientHeight;
 
   var canvas_width = canvas.clientWidth;
   var canvas_height = canvas.clientHeight;
@@ -28,7 +47,7 @@ function draw_grid() {
       if(i == x_axis_distance_grid_lines)
           ctx.strokeStyle = "#000000";
       else
-          ctx.strokeStyle = "#e9e9e9";
+          ctx.strokeStyle = "#c0c0c0";
 
       if(i == num_lines_x) {
           ctx.moveTo(0, grid_size*i);
@@ -50,7 +69,7 @@ function draw_grid() {
       if(i == y_axis_distance_grid_lines)
           ctx.strokeStyle = "#000000";
       else
-          ctx.strokeStyle = "#e9e9e9";
+          ctx.strokeStyle = "#c0c0c0";
 
       if(i == num_lines_y) {
           ctx.moveTo(grid_size*i, 0);
@@ -80,7 +99,7 @@ function draw_grid() {
       // Text value at that point
       ctx.font = '9px Arial';
       ctx.textAlign = 'start';
-      ctx.fillText(x_axis_starting_point.number*i + x_axis_starting_point.suffix, grid_size*i-2, 15);
+      ctx.fillText(x_axis_starting_point.number*i + x_axis_starting_point.suffix, grid_size*i+3, -5);
   }
 
   // Ticks marks along the negative X-axis
@@ -97,7 +116,7 @@ function draw_grid() {
       // Text value at that point
       ctx.font = '9px Arial';
       ctx.textAlign = 'end';
-      ctx.fillText(-x_axis_starting_point.number*i + x_axis_starting_point.suffix, -grid_size*i+3, 15);
+      ctx.fillText(-x_axis_starting_point.number*i + x_axis_starting_point.suffix, -grid_size*i-3, -5);
   }
 
   // Ticks marks along the positive Y-axis
@@ -115,7 +134,7 @@ function draw_grid() {
       // Text value at that point
       ctx.font = '9px Arial';
       ctx.textAlign = 'start';
-      ctx.fillText(-y_axis_starting_point.number*i + y_axis_starting_point.suffix, 8, grid_size*i+3);
+        ctx.fillText(-y_axis_starting_point.number*i + y_axis_starting_point.suffix, 5, grid_size*i-5);
   }
 
   // Ticks marks along the negative Y-axis
@@ -133,10 +152,19 @@ function draw_grid() {
       // Text value at that point
       ctx.font = '9px Arial';
       ctx.textAlign = 'start';
-      ctx.fillText(y_axis_starting_point.number*i + y_axis_starting_point.suffix, 8, -grid_size*i+3);
+      ctx.fillText(y_axis_starting_point.number*i + y_axis_starting_point.suffix, 5, -grid_size*i-5);
   }
 }
 draw_grid();
+
+// resize the canvas to fill browser window dynamically
+window.addEventListener('resize', resizeCanvas, false);
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw_grid();
+}
 
 
 document.body.onresize = draw_grid;
