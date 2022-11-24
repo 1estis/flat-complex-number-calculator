@@ -1,170 +1,194 @@
-const grid_size_default = 35;
-const scale_step = 0.1;
-const grid_size_step = 0.5;
-var x_axis_starting_point = { number: 1, suffix: '' };
-var y_axis_starting_point = { number: 1, suffix: '' };
+const scale_step = 1.5; // Zoom step
+const grid_size_default = 35; // Default grid size (px)
+const grid_size_reset_step = 2; // Reset grid size when grid size * grid_size_reset <= 1 or grid size / grid_size_reset >= 1
 
 var canvas = document.getElementById("my-canvas");
 var ctx = canvas.getContext("2d");
 
-var scale = 1;
-var grid_number_scale = 1;
-var grid_size = grid_size_default * scale;
+var scale = 1; // Scale of grid
+var grid_size = grid_size_default;
+var grid_center_shift = { x: 0, y: 0 };
 
-canvas.width = document.body.clientWidth;
-canvas.height = document.body.clientHeight;
-
-// Resize the canvas
+// Resize canvas to fit window
 function resize_canvas() {
     canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
     draw_grid();
 }
 
-// Resize the grid
-function resize_grid() {
-    grid_size = grid_size_default * scale;
-    draw_grid();
+document.body.onresize = resize_canvas;
+
+// Mouse move event
+document.body.onmousemove = function (e) {
+    if (e.buttons == 1) {
+        grid_center_shift.x += e.movementX;
+        grid_center_shift.y += e.movementY;
+        draw_grid();
+    }
+};
+
+// Mouse wheel event
+document.body.onwheel = function (e) {
+    // Define mouse position on grid
+    var mouse_pos = {
+        x: (e.clientX - grid_center_shift.x) / scale,
+        y: (e.clientY - grid_center_shift.y) / scale
+    };
+
 }
+
 
 // Draw the grid
 function draw_grid() {
+    
+    var canvas_width = canvas.clientWidth;
+    var canvas_height = canvas.clientHeight;
 
-  var canvas_width = canvas.clientWidth;
-  var canvas_height = canvas.clientHeight;
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas_width, canvas_height);
 
-  var num_lines_x = Math.floor(canvas_height/grid_size);
-  var num_lines_y = Math.floor(canvas_width/grid_size);
-  var x_axis_distance_grid_lines = Math.floor(num_lines_x/2);
-  var y_axis_distance_grid_lines = Math.floor(num_lines_y/2);
+    // Canvas center
+    var canvas_center = {
+        x: canvas_width / 2,
+        y: canvas_height / 2
+    };
 
-  // Draw grid lines along X-axis
-  for(var i=0; i<=num_lines_x; i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
 
-      // If line represents X-axis draw in different color
-      if(i == x_axis_distance_grid_lines)
-          ctx.strokeStyle = "#000000";
-      else
-          ctx.strokeStyle = "#c0c0c0";
+    // Grid center (by default it is canvas center)
+    var grid_center = {
+        x: canvas_center.x + grid_center_shift.x,
+        y: canvas_center.y + grid_center_shift.y
+    };
 
-      if(i == num_lines_x) {
-          ctx.moveTo(0, grid_size*i);
-          ctx.lineTo(canvas_width, grid_size*i);
-      }
-      else {
-          ctx.moveTo(0, grid_size*i+0.5);
-          ctx.lineTo(canvas_width, grid_size*i+0.5);
-      }
-      ctx.stroke();
-  }
+    var x_lines_shift = grid_center.x % grid_size;
+    var y_lines_shift = grid_center.y % grid_size;
+    var num_lines_x = (canvas_width-x_lines_shift)/grid_size;
+    var num_lines_y = (canvas_height-y_lines_shift)/grid_size;
 
-  // Draw grid lines along Y-axis
-  for(i=0; i<=num_lines_y; i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
+    // Draw all X-axis sublines in light gray (1px)
+    ctx.strokeStyle = "#d3d3d3";
+    ctx.lineWidth = 1;
+    
+    for (var i = 0; i < num_lines_x; i++) {
+        var x = x_lines_shift + i * grid_size;
+        if (x == grid_center.x) var x_main_line = x;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas_height);
+        ctx.stroke();
+    }
+    
+    // Draw all Y-axis sublines in light gray (1px)
+    for (var i = 0; i < num_lines_y; i++) {
+        var y = y_lines_shift + i * grid_size;
+        if (y == grid_center.y) var y_main_line = y;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas_width, y);
+        ctx.stroke();
+    }
 
-      // If line represents X-axis draw in different color
-      if(i == y_axis_distance_grid_lines)
-          ctx.strokeStyle = "#000000";
-      else
-          ctx.strokeStyle = "#c0c0c0";
+    // Draw main lines in black (2px)
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000000';
+    
+    // If the main X-axis line is intersecting the canvas, draw it
+    if (x_main_line) {
+        ctx.beginPath();
+        ctx.moveTo(x_main_line, 0);
+        ctx.lineTo(x_main_line, canvas_height);
+        ctx.stroke();
+    }
 
-      if(i == num_lines_y) {
-          ctx.moveTo(grid_size*i, 0);
-          ctx.lineTo(grid_size*i, canvas_height);
-      }
-      else {
-          ctx.moveTo(grid_size*i+0.5, 0);
-          ctx.lineTo(grid_size*i+0.5, canvas_height);
-      }
-      ctx.stroke();
-  }
+    // If the main Y-axis line is intersecting the canvas, draw it
+    if (y_main_line) {
+        ctx.beginPath();
+        ctx.moveTo(0, y_main_line);
+        ctx.lineTo(canvas_width, y_main_line);
+        ctx.stroke();
+    }
 
-  // Translate to the new origin. Now Y-axis of the canvas is opposite to the Y-axis of the graph. So the y-coordinate of each element will be negative of the actual
-  ctx.translate(y_axis_distance_grid_lines*grid_size, x_axis_distance_grid_lines*grid_size);
+    // Draw X-axis numbers (12px, on the left side of the grid center numbers are negative)
+    for (var i = 0; i < num_lines_x; i++) {
+        var x = x_lines_shift + i * grid_size;
+        var y = grid_center.y - 10;
+        if (x == grid_center.x) continue;
+        var num = (x - grid_center.x) / grid_size * scale;
+        var num_str = num.toString();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#000000";
+        ctx.textBaseline = "middle";
 
-  // Ticks marks along the positive X-axis
-  for(i=1; i<(num_lines_y - y_axis_distance_grid_lines); i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#000000";
+        // Numbers can not be drawn too close to the canvas top and botton borders (10px)
+        if (y < 12) {
+            y = 12;
+        } else if (y > canvas_height - 10) {
+            y = canvas_height - 10;
+        } else {
+            y = grid_center.y - 10;
+        }
 
-      // Draw a tick mark 6px long (-3 to 3)
-      ctx.moveTo(grid_size*i+0.5, -3);
-      ctx.lineTo(grid_size*i+0.5, 3);
-      ctx.stroke();
+        // Numbers can not be drawn too close to the canvas left and right borders (10px)
+        if (x < 10) {
+            x = 10;
+        } else if (x > canvas_width - 10) {
+            x = canvas_width - 10;
+        } else {
+            x = x;
+        }
 
-      // Text value at that point
-      ctx.font = '9px Arial';
-      ctx.textAlign = 'start';
-      ctx.fillText(x_axis_starting_point.number*i + x_axis_starting_point.suffix, grid_size*i+3, -5);
-  }
+        // Draw numbers
+        ctx.fillText(num_str, x+4, y);
+    }
 
-  // Ticks marks along the negative X-axis
-  for(i=1; i<y_axis_distance_grid_lines; i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#000000";
+    // Draw Y-axis numbers (12px, on the top side of the grid center numbers are negative)
+    for (var i = 0; i < num_lines_y; i++) {
+        var x = grid_center.x + 4;
+        var y = y_lines_shift + i * grid_size;
+        if (y == grid_center.y) continue;
+        var num = (grid_center.y - y) / grid_size * scale;
+        var num_str = num.toString();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#000000";
+        ctx.textBaseline = "middle";
 
-      // Draw a tick mark 6px long (-3 to 3)
-      ctx.moveTo(-grid_size*i+0.5, -3);
-      ctx.lineTo(-grid_size*i+0.5, 3);
-      ctx.stroke();
+        // Numbers can not be drawn too close to the canvas top and botton borders (10px)
+        if (y < 12) {
+            y = 12;
+        } else if (y > canvas_height - 10) {
+            y = canvas_height - 10;
+        } else {
+            y = y;
+        }
 
-      // Text value at that point
-      ctx.font = '9px Arial';
-      ctx.textAlign = 'end';
-      ctx.fillText(-x_axis_starting_point.number*i + x_axis_starting_point.suffix, -grid_size*i-3, -5);
-  }
+        // Numbers can not be drawn too close to the canvas left and right borders (10px)
+        if (x < 10) {
+            x = 10;
+        } else if (x > canvas_width - 10) {
+            x = canvas_width - 10;
+        } else {
+            x = grid_center.x + 4;
+        }
 
-  // Ticks marks along the positive Y-axis
-  // Positive Y-axis of graph is negative Y-axis of the canvas
-  for(i=1; i<(num_lines_x - x_axis_distance_grid_lines); i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#000000";
+        // Draw numbers
+        ctx.fillText(num_str, x, y-7);
+    }
 
-      // Draw a tick mark 6px long (-3 to 3)
-      ctx.moveTo(-3, grid_size*i+0.5);
-      ctx.lineTo(3, grid_size*i+0.5);
-      ctx.stroke();
+    // Draw the grid center (2px)
+    ctx.beginPath();
+    ctx.arc(grid_center.x, grid_center.y, 2, 0, 2 * Math.PI, false);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
 
-      // Text value at that point
-      ctx.font = '9px Arial';
-      ctx.textAlign = 'start';
-        ctx.fillText(-y_axis_starting_point.number*i + y_axis_starting_point.suffix, 5, grid_size*i-5);
-  }
-
-  // Ticks marks along the negative Y-axis
-  // Negative Y-axis of graph is positive Y-axis of the canvas
-  for(i=1; i<x_axis_distance_grid_lines; i++) {
-      ctx.beginPath();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#000000";
-
-      // Draw a tick mark 6px long (-3 to 3)
-      ctx.moveTo(-3, -grid_size*i+0.5);
-      ctx.lineTo(3, -grid_size*i+0.5);
-      ctx.stroke();
-
-      // Text value at that point
-      ctx.font = '9px Arial';
-      ctx.textAlign = 'start';
-      ctx.fillText(y_axis_starting_point.number*i + y_axis_starting_point.suffix, 5, -grid_size*i-5);
-  }
+    // Draw the grid center coordinates (12px)
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "middle";
+    ctx.fillText("0", grid_center.x + 4, grid_center.y - 10);        
 }
+
+canvas.width = document.body.clientWidth;
+canvas.height = document.body.clientHeight;
 draw_grid();
 
-// resize the canvas to fill browser window dynamically
-window.addEventListener('resize', resizeCanvas, false);
 
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    draw_grid();
-}
-
-
-document.body.onresize = draw_grid;
