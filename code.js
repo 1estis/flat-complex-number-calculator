@@ -1,124 +1,233 @@
-// Complex number calculator on the coordinate plane
-// Using coordinates plane from the Desmos graphing calculator
-// https://www.desmos.com/calculator
+const scale_step = 1.5; // Zoom step
+const base_interval_size = 200; // Base grid step size (px)
+const default_interval = 20; // Default interval between grid steps (units)
 
-var elt = document.getElementById('calculator'); // Div element
-var calculator = Desmos.GraphingCalculator(elt, {keypad: false, expressions: true});
+const beground_color = "#ffffff"; // Background color
+const grid_mainline_color = "#000000"; // Main grid lines color
+const grid_subline_color = "#d3d3d3"; // Sub grid lines color
+const grid_center_color = "#000000"; // Grid center color
+const grid_number_color = "#000000"; // Grid numbers color
 
-// Resize the div element to fit the screen
-elt.style.width = window.innerWidth + 'px';
-elt.style.height = window.innerHeight + 'px';
+let interval = default_interval; // Grid units per base_interval_size (grid units)
+let grid_center_shift = { x: 0, y: 0 }; // Grid center shift (grid units)
 
-// Resize the calculator when the window is resized
-window.onresize = function() {
-  elt.style.width = window.innerWidth + 'px';
-  elt.style.height = window.innerHeight + 'px';
-};
 
-// List of complex numbers
-var complexNumbers = [];
+let canvas = document.getElementById("my-canvas");
+let ctx = canvas.getContext("2d");
 
-// Complex number class
-class Complex {
-    constructor(real, imaginary) {
-        this.real = real;
-        this.imaginary = imaginary;
-    }
-
-    // Add two complex numbers
-    add(complex) {
-        return new Complex(this.real + complex.real, this.imaginary + complex.imaginary);
-    }
-
-    // Subtract two complex numbers
-    subtract(complex) {
-        return new Complex(this.real - complex.real, this.imaginary - complex.imaginary);
-    }
-
-    // Multiply two complex numbers
-    multiply(complex) {
-        return new Complex(this.real * complex.real - this.imaginary * complex.imaginary, this.real * complex.imaginary + this.imaginary * complex.real);
-    }
-
-    // Divide two complex numbers
-    divide(complex) {
-        return new Complex((this.real * complex.real + this.imaginary * complex.imaginary) / (complex.real * complex.real + complex.imaginary * complex.imaginary), (this.imaginary * complex.real - this.real * complex.imaginary) / (complex.real * complex.real + complex.imaginary * complex.imaginary));
-    }
-
-    // Get the absolute value of a complex number
-    abs() {
-        return Math.sqrt(this.real * this.real + this.imaginary * this.imaginary);
-    }
-
-    // Get the argument of a complex number
-    arg() {
-        return Math.atan2(this.imaginary, this.real);
-    }
-
-    // Get the conjugate of a complex number
-    conjugate() {
-        return new Complex(this.real, -this.imaginary);
-    }
-
-    // Get the reciprocal of a complex number
-    reciprocal() {
-        return new Complex(this.real / (this.real * this.real + this.imaginary * this.imaginary), -this.imaginary / (this.real * this.real + this.imaginary * this.imaginary));
-    }
-
-    // Get the real part of a complex number
-    getReal() {
-        return this.real;
-    }
-
-    // Get the imaginary part of a complex number
-    getImaginary() {
-        return this.imaginary;
-    }
-
-    // Get the polar form of a complex number
-    getPolar() {
-        return new Complex(this.abs(), this.arg());
-    }
-
-    // Get the exponential form of a complex number
-    getExponential() {
-        return new Complex(Math.exp(this.real) * Math.cos(this.imaginary), Math.exp(this.real) * Math.sin(this.imaginary));
-    }
-
-    // Get the string representation of a complex number
-    toString() {
-        if (this.imaginary == 0) {
-            return this.real.toString();
-        } else if (this.real == 0) {
-            return this.imaginary.toString() + 'i';
-        } else if (this.imaginary > 0) {
-            return this.real.toString() + ' + ' + this.imaginary.toString() + 'i';
-        } else {
-            return this.real.toString() + ' - ' + (-this.imaginary).toString() + 'i';
-        }
-    }
+// Resize canvas to fit window
+function resize_canvas() {
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
+    draw_grid();
 }
 
-const elt_onclick_default = elt.onclick === 'function' ? elt.onclick : function() {};
+document.body.onresize = resize_canvas;
 
-// On click, add a point to the graph
-elt.onclick = function(e) {
-    elt_onclick_default(e);
-    // Get the coordinates of the click
-    var {x, y} = calculator.pixelsToMath({x: e.clientX, y: e.clientY});
+// Mouse move event
+document.body.onmousemove = function (e) {
+    if (e.buttons == 1) {
+        grid_center_shift.x += e.movementX / base_interval_size * interval;
+        grid_center_shift.y -= e.movementY / base_interval_size * interval;
+        draw_grid();
+    }
+};
 
-    // On click on a point, draw a circle around it
-    for (var i = 0; i < complexNumbers.length; i++) {
-        if (Math.abs(complexNumbers[i].getReal() - x) < 0.1 && Math.abs(complexNumbers[i].getImaginary() - y) < 0.1) {
-            // Draw a circle around the point
-            // Define the circle as expression (x - a)^2 + (y - b)^2 = r^2
-            calculator.setExpression({id: 'circle', latex: '(x - ' + x + ')^2 + (y - ' + y + ')^2 = 0.1^2', color: Desmos.Colors.RED});
-            return;
+// Mouse wheel event
+document.body.onwheel = function (e) {
+    // Define mouse position on grid (grid units)
+    let mouse_pos = {
+        x: (e.clientX - canvas.width / 2) / (base_interval_size * interval) + grid_center_shift.x,
+        y: (canvas.height / 2 - e.clientY) / (base_interval_size * interval) + grid_center_shift.y
+    };
+
+    // Zoom in
+    if (e.deltaY < 0) {
+        if (interval > 1) interval -= 1;
+        else if (interval <= 1) interval -= 0.1;
+        if (interval <= 0) interval = 1;
+    }
+
+    // Zoom out
+    if (e.deltaY > 0) {
+        interval += 1;
+    }
+
+    draw_grid();
+};
+
+
+// Draw the grid
+function draw_grid() {
+    
+    let canvas_width = canvas.clientWidth;
+    let canvas_height = canvas.clientHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas_width, canvas_height);
+
+    // Canvas center (px)
+    let canvas_center = {
+        x: canvas_width / 2,
+        y: canvas_height / 2
+    };
+
+    // Grid center (px)
+    let grid_center = {
+        x: canvas_center.x + grid_center_shift.x * base_interval_size / interval,
+        y: canvas_center.y - grid_center_shift.y * base_interval_size / interval
+    };
+
+    // Calculate ui_intervals
+    let ui_intervals = [
+        Math.pow(10, Math.floor(Math.log10(interval))),
+        Math.pow(10, Math.floor(Math.log10(interval/2)))*2,
+        Math.pow(10, Math.floor(Math.log10(interval/5)))*5
+    ];
+
+    let ui_interval, ui_interval_size;
+    for (let i = 0; i < ui_intervals.length; i++) {
+        let curr_size = base_interval_size * ui_intervals[i] / interval;
+        if (i == 0) {
+            ui_interval = ui_intervals[i];
+            ui_interval_size = curr_size;
+        } else {
+            if (Math.abs(curr_size - base_interval_size) < Math.abs(ui_interval_size - base_interval_size)) {
+                ui_interval = ui_intervals[i];
+                ui_interval_size = curr_size;
+            }
         }
     }
 
-    // Add the point to the graph
-    var complex = new Complex(x, y);
-    complexNumbers.push(complex);
-    calculator.setExpression({id: 'point' + complex.toString(), latex: '(' + x + ', ' + y + ')', color: '#000000', hidden: false});
-};
+    console.log(interval, ui_interval, ui_interval_size);
+
+    let x_lines_shift = grid_center.x % ui_interval_size;
+    let y_lines_shift = grid_center.y % ui_interval_size;
+    let num_lines_x = (canvas_width-x_lines_shift)/ui_interval_size;
+    let num_lines_y = (canvas_height-y_lines_shift)/ui_interval_size;
+
+    // Draw all X-axis lines in light gray (1px)
+    ctx.strokeStyle = "#d3d3d3";
+    ctx.lineWidth = 1;
+    
+    let x_main_line = undefined;
+    for (let i = 0; i < num_lines_x; i++) {
+        let x = x_lines_shift + i * ui_interval_size;
+        if (x == grid_center.x) x_main_line = x;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas_height);
+        ctx.stroke();
+    }
+    
+    // Draw all Y-axis lines in light gray (1px)
+    let y_main_line = undefined;
+    for (let i = 0; i < num_lines_y; i++) {
+        let y = y_lines_shift + i * ui_interval_size;
+        if (y == grid_center.y) y_main_line = y;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas_width, y);
+        ctx.stroke();
+    }
+
+    // Draw main lines in black (2px)
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000000';
+    
+    // If the main X-axis line is intersecting the canvas, draw it
+    if (x_main_line) {
+        ctx.beginPath();
+        ctx.moveTo(x_main_line, 0);
+        ctx.lineTo(x_main_line, canvas_height);
+        ctx.stroke();
+    }
+
+    // If the main Y-axis line is intersecting the canvas, draw it
+    if (y_main_line) {
+        ctx.beginPath();
+        ctx.moveTo(0, y_main_line);
+        ctx.lineTo(canvas_width, y_main_line);
+        ctx.stroke();
+    }
+
+    // Draw X-axis numbers (12px, on the left side of the grid center numbers are negative)
+    for (let i = 0; i < num_lines_x; i++) {
+        let x = x_lines_shift + i * ui_interval_size;
+        let y = grid_center.y - 10;
+        if (x == grid_center.x) continue;
+        let num = (x - grid_center.x) / ui_interval_size * ui_interval;
+        let num_str = num.toString();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#000000";
+        ctx.textBaseline = "middle";
+
+        // Numbers can not be drawn too close to the canvas top and botton borders (10px)
+        if (y < 12) {
+            y = 12;
+        } else if (y > canvas_height - 10) {
+            y = canvas_height - 10;
+        } else {
+            y = grid_center.y - 10;
+        }
+
+        // Numbers can not be drawn too close to the canvas left and right borders (10px)
+        if (x < 10) {
+            x = 10;
+        } else if (x > canvas_width - 10) {
+            x = canvas_width - 10;
+        } else {
+            x = x;
+        }
+
+        // Draw numbers
+        ctx.fillText(num_str, x+4, y);
+    }
+
+    // Draw Y-axis numbers (12px, on the top side of the grid center numbers are negative)
+    for (let i = 0; i < num_lines_y; i++) {
+        let x = grid_center.x + 4;
+        let y = y_lines_shift + i * ui_interval_size;
+        if (y == grid_center.y) continue;
+        let num = (grid_center.y - y) / ui_interval_size * ui_interval;
+        let num_str = num.toString();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#000000";
+        ctx.textBaseline = "middle";
+
+        // Numbers can not be drawn too close to the canvas top and botton borders (10px)
+        if (y < 12) {
+            y = 12;
+        } else if (y > canvas_height - 10) {
+            y = canvas_height - 10;
+        } else {
+            y = y;
+        }
+
+        // Numbers can not be drawn too close to the canvas left and right borders (10px)
+        if (x < 10) {
+            x = 10;
+        } else if (x > canvas_width - 10) {
+            x = canvas_width - 10;
+        } else {
+            x = grid_center.x + 4;
+        }
+
+        // Draw numbers
+        ctx.fillText(num_str, x, y-7);
+    }
+
+    // Draw the grid center (2px)
+    ctx.beginPath();
+    ctx.arc(grid_center.x, grid_center.y, 2, 0, 2 * Math.PI, false);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+
+    // Draw the grid center coordinates (12px)
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "middle";
+    ctx.fillText("0", grid_center.x + 4, grid_center.y - 10);        
+}
+
+resize_canvas()
