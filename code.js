@@ -231,5 +231,3 @@ function draw_grid() {
 }
 
 resize_canvas()
-
-
