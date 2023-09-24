@@ -1,4 +1,4 @@
-const scale_step = 1.08; // Zoom step
+const scale_step = 1.1; // Zoom step
 const base_interval_size = 200; // Base grid step size (px)
 const default_interval = 20; // Default interval between grid steps (units)
 
@@ -156,8 +156,8 @@ function draw_grid() {
         if (x == grid_center.x) continue;
         let num = (x - grid_center.x) / ui_interval_size * ui_interval;
         
-        if (0.00009 < Math.abs(num) && Math.abs(num) < 99999) {
-            num_str = num.toLocaleString(undefined, { maximumSignificantDigits: 1 });
+        if (0.0001 <= Math.abs(num) && Math.abs(num) < 100000) {
+            num_str = num.toLocaleString();
         } else {
             num_str = num.toExponential(0);
         }
@@ -195,8 +195,8 @@ function draw_grid() {
         if (y == grid_center.y) continue;
         let num = (grid_center.y - y) / ui_interval_size * ui_interval;
         
-        if (0.00009 < Math.abs(num) && Math.abs(num) < 99999) {
-            num_str = num.toLocaleString(undefined, { maximumSignificantDigits: 1 });
+        if (0.0001 <= Math.abs(num) && Math.abs(num) < 100000) {
+            num_str = num.toLocaleString();
         } else {
             num_str = num.toExponential(0);
         }
