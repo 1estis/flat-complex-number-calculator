@@ -1,4 +1,4 @@
-const scale_step = 1.5; // Zoom step
+const scale_step = 1.08; // Zoom step
 const base_interval_size = 200; // Base grid step size (px)
 const default_interval = 20; // Default interval between grid steps (units)
 
@@ -27,8 +27,8 @@ document.body.onresize = resize_canvas;
 // Mouse move event
 document.body.onmousemove = function (e) {
     if (e.buttons == 1) {
-        grid_center_shift.x += e.movementX / base_interval_size * interval;
-        grid_center_shift.y -= e.movementY / base_interval_size * interval;
+        grid_center_shift.x += e.movementX * interval / base_interval_size;
+        grid_center_shift.y -= e.movementY * interval / base_interval_size;
         draw_grid();
     }
 };
@@ -43,14 +43,12 @@ document.body.onwheel = function (e) {
 
     // Zoom in
     if (e.deltaY < 0) {
-        if (interval > 1) interval -= 1;
-        else if (interval <= 1) interval -= 0.1;
-        if (interval <= 0) interval = 1;
+        interval /= scale_step;
     }
 
     // Zoom out
     if (e.deltaY > 0) {
-        interval += 1;
+        interval *= scale_step;
     }
 
     draw_grid();
@@ -157,7 +155,13 @@ function draw_grid() {
         let y = grid_center.y - 10;
         if (x == grid_center.x) continue;
         let num = (x - grid_center.x) / ui_interval_size * ui_interval;
-        let num_str = num.toString();
+        
+        if (0.00009 < Math.abs(num) && Math.abs(num) < 99999) {
+            num_str = num.toLocaleString(undefined, { maximumSignificantDigits: 1 });
+        } else {
+            num_str = num.toExponential(0);
+        }
+
         ctx.font = "12px Arial";
         ctx.fillStyle = "#000000";
         ctx.textBaseline = "middle";
@@ -190,7 +194,13 @@ function draw_grid() {
         let y = y_lines_shift + i * ui_interval_size;
         if (y == grid_center.y) continue;
         let num = (grid_center.y - y) / ui_interval_size * ui_interval;
-        let num_str = num.toString();
+        
+        if (0.00009 < Math.abs(num) && Math.abs(num) < 99999) {
+            num_str = num.toLocaleString(undefined, { maximumSignificantDigits: 1 });
+        } else {
+            num_str = num.toExponential(0);
+        }
+
         ctx.font = "12px Arial";
         ctx.fillStyle = "#000000";
         ctx.textBaseline = "middle";
